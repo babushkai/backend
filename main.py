@@ -5,15 +5,47 @@ import os
 
 app = Flask(__name__)
 
-# データベース接続設定
-def get_db_connection():
-    return mysql.connector.connect(
+# データベース初期化
+def init_db():
+    conn = mysql.connector.connect(
         host=os.getenv('DB_HOST', 'localhost'),
         user=os.getenv('DB_USER', 'root'),
         password=os.getenv('DB_PASSWORD', ''),
         database=os.getenv('DB_NAME', 'recipe_db'),
         connection_timeout=5000
     )
+    cursor = conn.cursor()
+    
+    # create.sqlファイルの読み込みと実行
+    with open('create.sql', 'r', encoding='utf-8') as file:
+        sql_commands = file.read()
+        
+    # 複数のSQLコマンドを分割して実行
+    for command in sql_commands.split(';'):
+        if command.strip():
+            cursor.execute(command + ';')
+    
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+# データベース接続設定
+def get_db_connection():
+    try:
+        conn = mysql.connector.connect(
+            host=os.getenv('DB_HOST', 'localhost'),
+            user=os.getenv('DB_USER', 'root'),
+            password=os.getenv('DB_PASSWORD', ''),
+            database=os.getenv('DB_NAME', 'recipe_db'),
+            connection_timeout=5000
+        )
+        return conn
+    except mysql.connector.Error as err:
+        if err.errno == mysql.connector.errorcode.ER_BAD_DB_ERROR:
+            # データベースが存在しない場合は初期化
+            init_db()
+            return get_db_connection()
+        raise
 
 # ベースURLへのアクセス処理
 @app.route('/', methods=['GET'])
