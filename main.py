@@ -124,7 +124,8 @@ def create_recipe():
             return jsonify({"message": "Recipe creation failed!"}), 200
 
         conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor(cursor_factory=DictCursor)
+
         
         # レシピの挿入
         sql = """INSERT INTO recipes (title, making_time, serves, ingredients, cost)
@@ -197,7 +198,7 @@ def get_recipes():
 def get_recipe(id):
     try:
         conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor(cursor_factory=DictCursor)
         cursor.execute("""SELECT id, title, making_time, serves, ingredients, cost, 
                          created_at, updated_at FROM recipes WHERE id = %s""", (id,))
         recipe = cursor.fetchone()
@@ -226,7 +227,7 @@ def update_recipe(id):
             return jsonify({"message": "Recipe update failed!"}), 200
 
         conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor(cursor_factory=DictCursor)
         
         # レシピの存在確認
         cursor.execute("SELECT id FROM recipes WHERE id = %s", (id,))

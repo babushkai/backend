@@ -13,8 +13,3 @@ services:
         value: receipe-db
       - key: DB_PASSWORD
         sync: false
-
-  - type: postgres
-    name: recipe-db
-    ipAllowList: []
-    plan: free 
