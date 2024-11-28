@@ -79,10 +79,10 @@ def create_recipe():
         # リクエストヘッダーのログ
         logger.debug(f"Request headers: {dict(request.headers)}")
         
-        # Content-Typeの確認
-        if request.content_type != 'application/json':
-            logger.warning(f"Invalid Content-Type: {request.content_type}")
-            return jsonify({"message": "Recipe creation failed!"}), 200
+        # # Content-Typeの確認
+        # if request.content_type != 'application/json':
+        #     logger.warning(f"Invalid Content-Type: {request.content_type}")
+        #     return jsonify({"message": "Recipe creation failed!"}), 200
 
         # リクエストボディの生データを確認
         raw_data = request.get_data()
