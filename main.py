@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 import psycopg2
 from psycopg2.extras import DictCursor
-from psycopg2 import pool
+from psycopg2 import pool, sql
 import os
 import logging
 
@@ -14,12 +14,72 @@ app = Flask(__name__)
 # Database connection pool
 db_pool = None
 
+def ensure_database_and_table():
+    """Ensure the database and 'recipes' table exist."""
+    try:
+        logger.debug("Ensuring the database and 'recipes' table exist...")
+        # Connect to the default 'postgres' database
+        conn = psycopg2.connect(
+            dbname='postgres',
+            user=os.getenv('DB_USER', 'user'),
+            password=os.getenv('DB_PASSWORD', 'password'),
+            host=os.getenv('DB_HOST', 'localhost'),
+            port=os.getenv('DB_PORT', 5432)
+        )
+        conn.autocommit = True
+        cursor = conn.cursor()
+
+        # Check if the database exists
+        db_name = os.getenv('DB_NAME', 'database')
+        cursor.execute("SELECT 1 FROM pg_database WHERE datname = %s", (db_name,))
+        if not cursor.fetchone():
+            # Create the database if it does not exist
+            logger.info(f"Database '{db_name}' does not exist. Creating...")
+            cursor.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(db_name)))
+            logger.info(f"Database '{db_name}' created successfully.")
+        
+        cursor.close()
+        conn.close()
+
+        # Connect to the application database to ensure the table exists
+        conn = psycopg2.connect(
+            dbname=db_name,
+            user=os.getenv('DB_USER', 'user'),
+            password=os.getenv('DB_PASSWORD', 'password'),
+            host=os.getenv('DB_HOST', 'localhost'),
+            port=os.getenv('DB_PORT', 5432)
+        )
+        cursor = conn.cursor()
+
+        # Create 'recipes' table if it doesn't exist
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS recipes (
+            id SERIAL PRIMARY KEY,
+            title VARCHAR(255) NOT NULL,
+            making_time VARCHAR(255) NOT NULL,
+            serves VARCHAR(255) NOT NULL,
+            ingredients TEXT NOT NULL,
+            cost INTEGER NOT NULL
+        )
+        """)
+        conn.commit()
+        logger.info("'recipes' table ensured in the database.")
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        logger.error(f"Error ensuring database and table: {e}")
+        raise
+
 def init_db_pool():
     """Initialize the database connection pool."""
     global db_pool
     if db_pool is None:
         try:
             logger.debug("Initializing the database connection pool...")
+            # Ensure database and table exist
+            ensure_database_and_table()
+
+            # Initialize the connection pool
             db_pool = psycopg2.pool.SimpleConnectionPool(
                 minconn=1,
                 maxconn=20,
