@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
-import mysql.connector
-from datetime import datetime
+import psycopg2
+from psycopg2.extras import DictCursor  # For dictionary-like results
 import os
 import logging
 import time
@@ -15,12 +15,12 @@ app = Flask(__name__)
 def init_db():
     logger.debug("Initializing database...")
     try:
-        conn = mysql.connector.connect(
+        conn = psycopg2.connect(
             host=os.getenv('DB_HOST', 'dpg-ct49sf0gph6c73c5vogg-a'),
             user=os.getenv('DB_USER', 'receipe_db_wr7o_user'),
             password=os.getenv('DB_PASSWORD', ''),
-            database=os.getenv('DB_NAME', 'recipe_db'),
-            connection_timeout=5000
+            dbname=os.getenv('DB_NAME', 'recipe_db'),
+            connect_timeout=5
         )
         cursor = conn.cursor()
         
@@ -54,17 +54,17 @@ def get_db_connection():
     
     for attempt in range(retries):
         try:
-            conn = mysql.connector.connect(
+            conn = psycopg2.connect(
                 host=os.getenv('DB_HOST', 'dpg-ct49sf0gph6c73c5vogg-a'),
                 user=os.getenv('DB_USER', 'receipe_db_wr7o_user'),
                 password=os.getenv('DB_PASSWORD', ''),
-                database=os.getenv('DB_NAME', 'recipe_db'),
-                port=3306,
-                connection_timeout=5000
+                dbname=os.getenv('DB_NAME', 'recipe_db'),
+                port=5432,
+                connect_timeout=5
             )
             logger.debug("Database connection successful")
             return conn
-        except mysql.connector.Error as err:
+        except psycopg2.Error as err:
             logger.error(f"Database connection error (attempt {attempt + 1}/{retries}): {str(err)}")
             if attempt < retries - 1:
                 logger.info(f"Retrying in {delay} seconds...")
@@ -160,7 +160,7 @@ def create_recipe():
                 "recipe": [recipe]
             }), 200
             
-        except mysql.connector.Error as err:
+        except psycopg2.Error as err:
             logger.error(f"Database error: {err}")
             return jsonify({"message": "Recipe creation failed!"}), 200
             

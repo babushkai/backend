@@ -3,28 +3,18 @@ services:
     name: recipe-api
     runtime: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn main:app
+    startCommand: gunicorn main:app --timeout 120 --workers 4
     envVars:
       - key: DB_HOST
         value: dpg-ct49sf0gph6c73c5vogg-a
       - key: DB_USER
         value: receipe_db_wr7o_user
       - key: DB_NAME
-        value: recipe_db
+        value: receipe-db
       - key: DB_PASSWORD
         sync: false
 
-  - type: pserv
-    name: recipe-mysql
-    runtime: mysql
+  - type: postgres
+    name: recipe-db
     ipAllowList: []
-    plan: free
-    envVars:
-      - key: MYSQL_DATABASE
-        value: recipe_db
-      - key: MYSQL_USER
-        generateValue: true
-      - key: MYSQL_PASSWORD
-        generateValue: true
-      - key: MYSQL_ROOT_PASSWORD
-        generateValue: true 
+    plan: free 
