@@ -18,7 +18,7 @@ def init_db():
         conn = psycopg2.connect(
             host=os.getenv('DB_HOST', 'dpg-ct49sf0gph6c73c5vogg-a'),
             user=os.getenv('DB_USER', 'receipe_db_wr7o_user'),
-            password=os.getenv('DB_PASSWORD', ''),
+            password=os.getenv('DB_PASSWORD', 'postgres'),
             dbname=os.getenv('DB_NAME', 'recipe_db'),
             connect_timeout=5
         )
@@ -58,7 +58,7 @@ def get_db_connection():
             db_host = os.getenv('DB_HOST', 'dpg-ct49sf0gph6c73c5vogg-a')
             db_name = os.getenv('DB_NAME', 'recipe_db')
             db_user = os.getenv('DB_USER', 'receipe_db_wr7o_user')
-            db_password = os.getenv('DB_PASSWORD')  # Make sure this is set in your environment
+            db_password = os.getenv('DB_PASSWORD', "postgres")  # Make sure this is set in your environment
             
             # Log connection attempt (without password)
             logger.debug(f"Attempting to connect to database at {db_host} with user {db_user}")
