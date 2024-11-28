@@ -138,12 +138,12 @@ def create_recipe():
         data = request.get_json()
         required_fields = ['title', 'making_time', 'serves', 'ingredients', 'cost']
         
-        # Fill in missing fields with empty values instead of returning 400
-        for field in required_fields:
-            if field not in data:
-                data[field] = ""
-            if field == 'cost' and not data[field]:
-                data[field] = 0
+        # Check if any required field is missing
+        if not all(field in data and data[field] for field in required_fields):
+            return jsonify({
+                "message": "Recipe creation failed!",
+                "required": "title, making_time, serves, ingredients, cost"
+            }), 200  # Return 200 but with failure message
 
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=DictCursor)
@@ -166,11 +166,10 @@ def create_recipe():
         }), 200
     except Exception as e:
         logger.error(f"Error creating recipe: {e}")
-        # Even in case of error, return 200 as per requirements
         return jsonify({
-            "message": "Recipe successfully created!",
-            "recipe": []
-        }), 200
+            "message": "Recipe creation failed!",
+            "required": "title, making_time, serves, ingredients, cost"
+        }), 200  # Return 200 even for errors
 
 @app.route('/recipes/<int:recipe_id>', methods=['GET'])
 def get_recipe_by_id(recipe_id):
