@@ -156,6 +156,77 @@ def create_recipe():
         logger.error(f"Error creating recipe: {e}")
         return jsonify({"message": "Recipe creation failed!"}), 500
 
+@app.route('/recipes/<int:recipe_id>', methods=['GET'])
+def get_recipe_by_id(recipe_id):
+    """Retrieve a specific recipe by ID."""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=DictCursor)
+        cursor.execute("SELECT * FROM recipes WHERE id = %s", (recipe_id,))
+        recipe = cursor.fetchone()
+        cursor.close()
+        release_db_connection(conn)
+
+        if recipe:
+            return jsonify(dict(recipe)), 200
+        else:
+            return jsonify({"message": "Recipe not found"}), 404
+    except Exception as e:
+        logger.error(f"Error retrieving recipe by ID: {e}")
+        return jsonify({"message": "Failed to retrieve recipe"}), 500
+
+
+@app.route('/recipes/<int:recipe_id>', methods=['PATCH'])
+def update_recipe(recipe_id):
+    """Update a specific recipe by ID."""
+    try:
+        data = request.get_json()
+        update_fields = ['title', 'making_time', 'serves', 'ingredients', 'cost']
+        updates = {key: data[key] for key in update_fields if key in data}
+
+        if not updates:
+            return jsonify({"message": "No valid fields to update"}), 400
+
+        set_clause = ", ".join(f"{key} = %s" for key in updates.keys())
+        query = f"UPDATE recipes SET {set_clause} WHERE id = %s RETURNING *"
+
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=DictCursor)
+        cursor.execute(query, (*updates.values(), recipe_id))
+        updated_recipe = cursor.fetchone()
+        conn.commit()
+        cursor.close()
+        release_db_connection(conn)
+
+        if updated_recipe:
+            return jsonify({"message": "Recipe successfully updated", "recipe": dict(updated_recipe)}), 200
+        else:
+            return jsonify({"message": "Recipe not found"}), 404
+    except Exception as e:
+        logger.error(f"Error updating recipe by ID: {e}")
+        return jsonify({"message": "Failed to update recipe"}), 500
+
+
+@app.route('/recipes/<int:recipe_id>', methods=['DELETE'])
+def delete_recipe(recipe_id):
+    """Delete a specific recipe by ID."""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM recipes WHERE id = %s RETURNING id", (recipe_id,))
+        deleted_recipe = cursor.fetchone()
+        conn.commit()
+        cursor.close()
+        release_db_connection(conn)
+
+        if deleted_recipe:
+            return jsonify({"message": "Recipe successfully deleted"}), 200
+        else:
+            return jsonify({"message": "Recipe not found"}), 404
+    except Exception as e:
+        logger.error(f"Error deleting recipe by ID: {e}")
+        return jsonify({"message": "Failed to delete recipe"}), 500
+
 if __name__ == '__main__':
     logger.info("Starting Flask application...")
     init_db_pool()
