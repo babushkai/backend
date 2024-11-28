@@ -153,7 +153,7 @@ def create_recipe():
         conn.commit()
         cursor.close()
         release_db_connection(conn)
-        return jsonify({"message": "Recipe successfully created!", "recipe_id": recipe_id}), 201
+        return jsonify({"message": "Recipe successfully created!", "recipe_id": recipe_id}), 200
     except Exception as e:
         logger.error(f"Error creating recipe: {e}")
         return jsonify({"message": "Recipe creation failed!"}), 500
