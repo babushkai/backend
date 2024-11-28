@@ -12,10 +12,10 @@ def get_db_connection():
         user=os.getenv('DB_USER', 'root'),
         password=os.getenv('DB_PASSWORD', ''),
         database=os.getenv('DB_NAME', 'recipe_db'),
-        connection_timeout=5000  # タイムアウト設定を追加
+        connection_timeout=5000
     )
 
-# ベースURLへのアクセス処理を追加
+# ベースURLへのアクセス処理
 @app.route('/', methods=['GET'])
 def index():
     return '', 404
@@ -31,7 +31,7 @@ def create_recipe():
         required_fields = ['title', 'making_time', 'serves', 'ingredients', 'cost']
         
         # 必須フィールドの確認
-        if not all(field in data for field in required_fields):
+        if not all(field in data and data[field] for field in required_fields):
             return jsonify({"message": "Recipe creation failed!"}), 200
 
         conn = get_db_connection()
@@ -45,15 +45,17 @@ def create_recipe():
             data['making_time'],
             data['serves'],
             data['ingredients'],
-            int(data['cost'])  # costを整数に変換
+            int(data['cost'])
         ))
+        
+        conn.commit()  # 先にコミットする
         
         # 作成したレシピの取得
         recipe_id = cursor.lastrowid
-        cursor.execute("SELECT * FROM recipes WHERE id = %s", (recipe_id,))
+        cursor.execute("""SELECT id, title, making_time, serves, ingredients, cost, 
+                         created_at, updated_at FROM recipes WHERE id = %s""", (recipe_id,))
         recipe = cursor.fetchone()
         
-        conn.commit()
         cursor.close()
         conn.close()
 
@@ -63,7 +65,7 @@ def create_recipe():
         }), 200
 
     except Exception as e:
-        print(f"Error creating recipe: {str(e)}")  # エラーログを追加
+        print(f"Error creating recipe: {str(e)}")
         return jsonify({"message": "Recipe creation failed!"}), 200
 
 # 全レシピ取得 GET /recipes
@@ -72,15 +74,19 @@ def get_recipes():
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM recipes")
+        cursor.execute("""SELECT id, title, making_time, serves, ingredients, cost, 
+                         created_at, updated_at FROM recipes""")
         recipes = cursor.fetchall()
         cursor.close()
         conn.close()
 
+        if not recipes:
+            return jsonify({"message": "No recipes found"}), 200
+
         return jsonify({"recipes": recipes}), 200
 
     except Exception as e:
-        return jsonify({"message": "No recipes found"}), 404
+        return jsonify({"message": "No recipes found"}), 200
 
 # 指定レシピ取得 GET /recipes/{id}
 @app.route('/recipes/<int:id>', methods=['GET'])
@@ -88,7 +94,8 @@ def get_recipe(id):
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM recipes WHERE id = %s", (id,))
+        cursor.execute("""SELECT id, title, making_time, serves, ingredients, cost, 
+                         created_at, updated_at FROM recipes WHERE id = %s""", (id,))
         recipe = cursor.fetchone()
         cursor.close()
         conn.close()
@@ -99,10 +106,10 @@ def get_recipe(id):
                 "recipe": [recipe]
             }), 200
         else:
-            return jsonify({"message": "No Recipe found"}), 404
+            return jsonify({"message": "No Recipe found"}), 200
 
     except Exception as e:
-        return jsonify({"message": "No Recipe found"}), 404
+        return jsonify({"message": "No Recipe found"}), 200
 
 # レシピ更新 PATCH /recipes/{id}
 @app.route('/recipes/<int:id>', methods=['PATCH'])
