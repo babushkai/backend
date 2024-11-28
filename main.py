@@ -76,18 +76,45 @@ def index():
 def create_recipe():
     logger.debug("Received POST request to /recipes")
     try:
+        # リクエストヘッダーのログ
+        logger.debug(f"Request headers: {dict(request.headers)}")
+        
+        # Content-Typeの確認
+        if request.content_type != 'application/json':
+            logger.warning(f"Invalid Content-Type: {request.content_type}")
+            return jsonify({"message": "Recipe creation failed!"}), 200
+
+        # リクエストボディの生データを確認
+        raw_data = request.get_data()
+        logger.debug(f"Raw request data: {raw_data}")
+
         if not request.is_json:
-            logger.warning("Request does not contain JSON data")
+            logger.warning("Request is not JSON")
             return jsonify({"message": "Recipe creation failed!"}), 200
 
         data = request.get_json()
-        logger.debug(f"Received data: {data}")
+        logger.debug(f"Parsed JSON data: {data}")
         
         required_fields = ['title', 'making_time', 'serves', 'ingredients', 'cost']
         
-        # 必須フィールドの確認
-        if not all(field in data and data[field] for field in required_fields):
-            logger.warning(f"Missing required fields. Received fields: {list(data.keys())}")
+        # 各フィールドの値を個別に確認
+        for field in required_fields:
+            if field not in data:
+                logger.warning(f"Missing field: {field}")
+                return jsonify({"message": "Recipe creation failed!"}), 200
+            if not data[field]:
+                logger.warning(f"Empty field: {field}")
+                return jsonify({"message": "Recipe creation failed!"}), 200
+            logger.debug(f"Field {field}: {data[field]}")
+
+        try:
+            # costが数値に変換できることを確認
+            cost = int(data['cost'])
+            if cost <= 0:
+                logger.warning("Cost must be positive")
+                return jsonify({"message": "Recipe creation failed!"}), 200
+        except ValueError:
+            logger.warning(f"Invalid cost value: {data['cost']}")
             return jsonify({"message": "Recipe creation failed!"}), 200
 
         conn = get_db_connection()
@@ -101,29 +128,39 @@ def create_recipe():
             data['making_time'],
             data['serves'],
             data['ingredients'],
-            int(data['cost'])
+            cost
         )
         logger.debug(f"Executing SQL: {sql} with values: {values}")
         
-        cursor.execute(sql, values)
-        conn.commit()
-        
-        recipe_id = cursor.lastrowid
-        logger.debug(f"Recipe created with ID: {recipe_id}")
-        
-        # 作成したレシピの取得
-        cursor.execute("""SELECT id, title, making_time, serves, ingredients, cost, 
-                         created_at, updated_at FROM recipes WHERE id = %s""", (recipe_id,))
-        recipe = cursor.fetchone()
-        
-        cursor.close()
-        conn.close()
-        
-        logger.debug(f"Successfully created recipe: {recipe}")
-        return jsonify({
-            "message": "Recipe successfully created!",
-            "recipe": [recipe]
-        }), 200
+        try:
+            cursor.execute(sql, values)
+            conn.commit()
+            
+            recipe_id = cursor.lastrowid
+            logger.debug(f"Recipe created with ID: {recipe_id}")
+            
+            # 作成したレシピの取得
+            cursor.execute("""SELECT id, title, making_time, serves, ingredients, cost, 
+                            created_at, updated_at FROM recipes WHERE id = %s""", (recipe_id,))
+            recipe = cursor.fetchone()
+            
+            if not recipe:
+                logger.error("Created recipe not found")
+                return jsonify({"message": "Recipe creation failed!"}), 200
+                
+            logger.debug(f"Successfully created recipe: {recipe}")
+            return jsonify({
+                "message": "Recipe successfully created!",
+                "recipe": [recipe]
+            }), 200
+            
+        except mysql.connector.Error as err:
+            logger.error(f"Database error: {err}")
+            return jsonify({"message": "Recipe creation failed!"}), 200
+            
+        finally:
+            cursor.close()
+            conn.close()
 
     except Exception as e:
         logger.error(f"Error creating recipe: {str(e)}", exc_info=True)
