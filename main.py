@@ -59,7 +59,9 @@ def ensure_database_and_table():
             making_time VARCHAR(255) NOT NULL,
             serves VARCHAR(255) NOT NULL,
             ingredients TEXT NOT NULL,
-            cost INTEGER NOT NULL
+            cost INTEGER NOT NULL,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
         """)
         conn.commit()
@@ -175,7 +177,6 @@ def get_recipe_by_id(recipe_id):
         logger.error(f"Error retrieving recipe by ID: {e}")
         return jsonify({"message": "Failed to retrieve recipe"}), 500
 
-
 @app.route('/recipes/<int:recipe_id>', methods=['PATCH'])
 def update_recipe(recipe_id):
     """Update a specific recipe by ID."""
@@ -188,7 +189,7 @@ def update_recipe(recipe_id):
             return jsonify({"message": "No valid fields to update"}), 400
 
         set_clause = ", ".join(f"{key} = %s" for key in updates.keys())
-        query = f"UPDATE recipes SET {set_clause} WHERE id = %s RETURNING *"
+        query = f"UPDATE recipes SET {set_clause}, updated_at = CURRENT_TIMESTAMP WHERE id = %s RETURNING *"
 
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=DictCursor)
@@ -205,7 +206,6 @@ def update_recipe(recipe_id):
     except Exception as e:
         logger.error(f"Error updating recipe by ID: {e}")
         return jsonify({"message": "Failed to update recipe"}), 500
-
 
 @app.route('/recipes/<int:recipe_id>', methods=['DELETE'])
 def delete_recipe(recipe_id):
