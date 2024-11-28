@@ -7,9 +7,9 @@ services:
     envVars:
       - key: DB_HOST
         value: dpg-ct49sf0gph6c73c5vogg-a
+      - key: DB_NAME
+        value: recipe_db
       - key: DB_USER
         value: receipe_db_wr7o_user
-      - key: DB_NAME
-        value: receipe-db
       - key: DB_PASSWORD
-        sync: False
+        sync: false
