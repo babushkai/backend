@@ -58,8 +58,8 @@ def get_db_connection():
                 host=os.getenv('DB_HOST', 'dpg-ct49sf0gph6c73c5vogg-a'),
                 user=os.getenv('DB_USER', 'receipe_db_wr7o_user'),
                 password=os.getenv('DB_PASSWORD', ''),
-                database=os.getenv('DB_NAME', 'receipe_db_wr7o'),
-                port=5432,  # PostgreSQLのデフォルトポート
+                database=os.getenv('DB_NAME', 'recipe_db'),
+                port=3306,
                 connection_timeout=5000
             )
             logger.debug("Database connection successful")

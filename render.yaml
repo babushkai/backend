@@ -10,9 +10,9 @@ services:
       - key: DB_USER
         value: receipe_db_wr7o_user
       - key: DB_NAME
-        value: receipe_db_wr7o
+        value: recipe_db
       - key: DB_PASSWORD
-        sync: false  # パスワードは後でRenderのダッシュボードで設定
+        sync: false
 
   - type: pserv
     name: recipe-mysql
