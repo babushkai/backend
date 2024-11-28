@@ -170,7 +170,7 @@ def get_recipe_by_id(recipe_id):
         release_db_connection(conn)
 
         if recipe:
-            return jsonify(dict(recipe)), 200
+            return jsonify({"message": "Recipe details by id", "recipe": [dict(recipe)]}), 200
         else:
             return jsonify({"message": "Recipe not found"}), 404
     except Exception as e:
