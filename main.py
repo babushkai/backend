@@ -11,23 +11,32 @@ def get_db_connection():
         host=os.getenv('DB_HOST', 'localhost'),
         user=os.getenv('DB_USER', 'root'),
         password=os.getenv('DB_PASSWORD', ''),
-        database=os.getenv('DB_NAME', 'recipe_db')
+        database=os.getenv('DB_NAME', 'recipe_db'),
+        connection_timeout=5000  # タイムアウト設定を追加
     )
+
+# ベースURLへのアクセス処理を追加
+@app.route('/', methods=['GET'])
+def index():
+    return '', 404
 
 # レシピ作成 POST /recipes
 @app.route('/recipes', methods=['POST'])
 def create_recipe():
     try:
+        if not request.is_json:
+            return jsonify({"message": "Recipe creation failed!"}), 200
+
         data = request.get_json()
         required_fields = ['title', 'making_time', 'serves', 'ingredients', 'cost']
-
+        
         # 必須フィールドの確認
         if not all(field in data for field in required_fields):
             return jsonify({"message": "Recipe creation failed!"}), 200
 
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-
+        
         # レシピの挿入
         sql = """INSERT INTO recipes (title, making_time, serves, ingredients, cost)
                 VALUES (%s, %s, %s, %s, %s)"""
@@ -36,14 +45,14 @@ def create_recipe():
             data['making_time'],
             data['serves'],
             data['ingredients'],
-            data['cost']
+            int(data['cost'])  # costを整数に変換
         ))
-
+        
         # 作成したレシピの取得
         recipe_id = cursor.lastrowid
         cursor.execute("SELECT * FROM recipes WHERE id = %s", (recipe_id,))
         recipe = cursor.fetchone()
-
+        
         conn.commit()
         cursor.close()
         conn.close()
@@ -54,6 +63,7 @@ def create_recipe():
         }), 200
 
     except Exception as e:
+        print(f"Error creating recipe: {str(e)}")  # エラーログを追加
         return jsonify({"message": "Recipe creation failed!"}), 200
 
 # 全レシピ取得 GET /recipes
