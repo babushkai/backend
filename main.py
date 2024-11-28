@@ -149,7 +149,7 @@ def create_recipe():
             """,
             (data['title'], data['making_time'], data['serves'], data['ingredients'], int(data['cost']))
         )
-        recipe_id = cursor.fetchone()['id']
+        recipe_id = data['id']
         conn.commit()
         cursor.close()
         release_db_connection(conn)
