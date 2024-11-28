@@ -188,8 +188,11 @@ def update_recipe(recipe_id):
         if not updates:
             return jsonify({"message": "No valid fields to update"}), 400
 
+        # Add updated_at explicitly to ensure it gets updated
+        updates['updated_at'] = 'CURRENT_TIMESTAMP'
+
         set_clause = ", ".join(f"{key} = %s" for key in updates.keys())
-        query = f"UPDATE recipes SET {set_clause}, updated_at = CURRENT_TIMESTAMP WHERE id = %s RETURNING *"
+        query = f"UPDATE recipes SET {set_clause} WHERE id = %s RETURNING *"
 
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=DictCursor)
@@ -206,6 +209,7 @@ def update_recipe(recipe_id):
     except Exception as e:
         logger.error(f"Error updating recipe by ID: {e}")
         return jsonify({"message": "Failed to update recipe"}), 500
+
 
 @app.route('/recipes/<int:recipe_id>', methods=['DELETE'])
 def delete_recipe(recipe_id):
