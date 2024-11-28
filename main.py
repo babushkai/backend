@@ -117,12 +117,19 @@ def update_recipe(id):
     try:
         data = request.get_json()
         required_fields = ['title', 'making_time', 'serves', 'ingredients', 'cost']
-
-        if not all(field in data for field in required_fields):
+        
+        if not all(field in data and data[field] for field in required_fields):
             return jsonify({"message": "Recipe update failed!"}), 200
 
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
+        
+        # レシピの存在確認
+        cursor.execute("SELECT id FROM recipes WHERE id = %s", (id,))
+        if not cursor.fetchone():
+            cursor.close()
+            conn.close()
+            return jsonify({"message": "No Recipe found"}), 200
 
         # レシピの更新
         sql = """UPDATE recipes 
@@ -134,26 +141,27 @@ def update_recipe(id):
             data['making_time'],
             data['serves'],
             data['ingredients'],
-            data['cost'],
+            int(data['cost']),
             id
         ))
+        
+        conn.commit()
+        
+        # 更新したレシピの取得
+        cursor.execute("""SELECT id, title, making_time, serves, ingredients, cost, 
+                         created_at, updated_at FROM recipes WHERE id = %s""", (id,))
+        recipe = cursor.fetchone()
+        
+        cursor.close()
+        conn.close()
 
-        if cursor.rowcount > 0:
-            # 更新したレシピの取得
-            cursor.execute("SELECT * FROM recipes WHERE id = %s", (id,))
-            recipe = cursor.fetchone()
-            conn.commit()
-            cursor.close()
-            conn.close()
-
-            return jsonify({
-                "message": "Recipe successfully updated!",
-                "recipe": [recipe]
-            }), 200
-        else:
-            return jsonify({"message": "No Recipe found"}), 404
+        return jsonify({
+            "message": "Recipe successfully updated!",
+            "recipe": [recipe]
+        }), 200
 
     except Exception as e:
+        print(f"Error updating recipe: {str(e)}")
         return jsonify({"message": "Recipe update failed!"}), 200
 
 # レシピ削除 DELETE /recipes/{id}
@@ -161,14 +169,16 @@ def update_recipe(id):
 def delete_recipe(id):
     try:
         conn = get_db_connection()
-        cursor = conn.cursor()
-
+        cursor = conn.cursor(dictionary=True)
+        
+        # レシピの存在確認
         cursor.execute("SELECT id FROM recipes WHERE id = %s", (id,))
         if not cursor.fetchone():
             cursor.close()
             conn.close()
-            return jsonify({"message": "No Recipe found"}), 404
+            return jsonify({"message": "No Recipe found"}), 200
 
+        # レシピの削除
         cursor.execute("DELETE FROM recipes WHERE id = %s", (id,))
         conn.commit()
         cursor.close()
@@ -177,7 +187,8 @@ def delete_recipe(id):
         return jsonify({"message": "Recipe successfully removed!"}), 200
 
     except Exception as e:
-        return jsonify({"message": "No Recipe found"}), 404
+        print(f"Error deleting recipe: {str(e)}")
+        return jsonify({"message": "No Recipe found"}), 200
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.getenv('PORT', 3000)))
