@@ -54,11 +54,20 @@ def get_db_connection():
     
     for attempt in range(retries):
         try:
+            # Get database credentials from environment variables
+            db_host = os.getenv('DB_HOST', 'dpg-ct49sf0gph6c73c5vogg-a')
+            db_name = os.getenv('DB_NAME', 'recipe_db')
+            db_user = os.getenv('DB_USER', 'receipe_db_wr7o_user')
+            db_password = os.getenv('DB_PASSWORD')  # Make sure this is set in your environment
+            
+            # Log connection attempt (without password)
+            logger.debug(f"Attempting to connect to database at {db_host} with user {db_user}")
+            
             conn = psycopg2.connect(
-                host=os.getenv('DB_HOST', 'dpg-ct49sf0gph6c73c5vogg-a'),
-                user=os.getenv('DB_USER', 'receipe_db_wr7o_user'),
-                password=os.getenv('DB_PASSWORD', ''),
-                dbname=os.getenv('DB_NAME', 'recipe_db'),
+                host=db_host,
+                dbname=db_name,
+                user=db_user,
+                password=db_password,
                 port=5432,
                 connect_timeout=5
             )
@@ -276,7 +285,7 @@ def delete_recipe(id):
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         
-        # レシピの存在確認
+        # レ���ピの存在確認
         cursor.execute("SELECT id FROM recipes WHERE id = %s", (id,))
         if not cursor.fetchone():
             cursor.close()
