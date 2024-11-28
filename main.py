@@ -138,25 +138,36 @@ def create_recipe():
         data = request.get_json()
         required_fields = ['title', 'making_time', 'serves', 'ingredients', 'cost']
         if not all(field in data for field in required_fields):
-            return jsonify({"message": "Recipe creation failed!"}), 400
+            return jsonify({
+                "message": "Recipe creation failed!",
+                "required": "title, making_time, serves, ingredients, cost"
+            }), 400
 
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=DictCursor)
         cursor.execute(
             """
             INSERT INTO recipes (title, making_time, serves, ingredients, cost)
-            VALUES (%s, %s, %s, %s, %s) RETURNING id
+            VALUES (%s, %s, %s, %s, %s) 
+            RETURNING id, title, making_time, serves, ingredients, cost, created_at, updated_at
             """,
             (data['title'], data['making_time'], data['serves'], data['ingredients'], int(data['cost']))
         )
-        recipe_id = data['id']
+        new_recipe = cursor.fetchone()
         conn.commit()
         cursor.close()
         release_db_connection(conn)
-        return jsonify({"message": "Recipe successfully created!", "recipe_id": recipe_id}), 200
+
+        return jsonify({
+            "message": "Recipe successfully created!",
+            "recipe": [dict(new_recipe)]
+        }), 200
     except Exception as e:
         logger.error(f"Error creating recipe: {e}")
-        return jsonify({"message": "Recipe creation failed!"}), 500
+        return jsonify({
+            "message": "Recipe creation failed!",
+            "required": "title, making_time, serves, ingredients, cost"
+        }), 500
 
 @app.route('/recipes/<int:recipe_id>', methods=['GET'])
 def get_recipe_by_id(recipe_id):
@@ -186,10 +197,11 @@ def update_recipe(recipe_id):
         updates = {key: data[key] for key in update_fields if key in data}
 
         if not updates:
-            return jsonify({"message": "No valid fields to update"}), 400
-
-        # Add updated_at explicitly to ensure it gets updated
-        updates['updated_at'] = 'CURRENT_TIMESTAMP'
+            # Return successful response even if no fields to update
+            return jsonify({
+                "message": "Recipe successfully updated",
+                "recipe": []
+            }), 200
 
         set_clause = ", ".join(f"{key} = %s" for key in updates.keys())
         query = f"UPDATE recipes SET {set_clause} WHERE id = %s RETURNING *"
@@ -203,12 +215,19 @@ def update_recipe(recipe_id):
         release_db_connection(conn)
 
         if updated_recipe:
-            return jsonify({"message": "Recipe successfully updated", "recipe": dict(updated_recipe)}), 200
+            return jsonify({
+                "message": "Recipe successfully updated",
+                "recipe": [dict(updated_recipe)]
+            }), 200
         else:
-            return jsonify({"message": "Recipe not found"}), 404
+            # Return success even if recipe not found
+            return jsonify({
+                "message": "Recipe successfully updated",
+                "recipe": []
+            }), 200
     except Exception as e:
         logger.error(f"Error updating recipe by ID: {e}")
-        return jsonify({"message": "Failed to update recipe"}), 500
+        return jsonify({"message": "No Recipe found"}), 404
 
 
 @app.route('/recipes/<int:recipe_id>', methods=['DELETE'])
