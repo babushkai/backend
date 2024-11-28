@@ -6,25 +6,13 @@ services:
     startCommand: gunicorn main:app
     envVars:
       - key: DB_HOST
-        fromService:
-          type: pserv
-          name: recipe-mysql
-          property: host
+        value: dpg-ct49sf0gph6c73c5vogg-a
       - key: DB_USER
-        fromService:
-          type: pserv
-          name: recipe-mysql
-          property: user
-      - key: DB_PASSWORD
-        fromService:
-          type: pserv
-          name: recipe-mysql
-          property: password
+        value: receipe_db_wr7o_user
       - key: DB_NAME
-        fromService:
-          type: pserv
-          name: recipe-mysql
-          property: database
+        value: receipe_db_wr7o
+      - key: DB_PASSWORD
+        sync: false  # パスワードは後でRenderのダッシュボードで設定
 
   - type: pserv
     name: recipe-mysql

@@ -16,8 +16,8 @@ def init_db():
     logger.debug("Initializing database...")
     try:
         conn = mysql.connector.connect(
-            host=os.getenv('DB_HOST', 'localhost'),
-            user=os.getenv('DB_USER', 'root'),
+            host=os.getenv('DB_HOST', 'dpg-ct49sf0gph6c73c5vogg-a'),
+            user=os.getenv('DB_USER', 'receipe_db_wr7o_user'),
             password=os.getenv('DB_PASSWORD', ''),
             database=os.getenv('DB_NAME', 'recipe_db'),
             connection_timeout=5000
@@ -55,10 +55,11 @@ def get_db_connection():
     for attempt in range(retries):
         try:
             conn = mysql.connector.connect(
-                host=os.getenv('DB_HOST', 'localhost'),
-                user=os.getenv('DB_USER', 'root'),
+                host=os.getenv('DB_HOST', 'dpg-ct49sf0gph6c73c5vogg-a'),
+                user=os.getenv('DB_USER', 'receipe_db_wr7o_user'),
                 password=os.getenv('DB_PASSWORD', ''),
-                database=os.getenv('DB_NAME', 'recipe_db'),
+                database=os.getenv('DB_NAME', 'receipe_db_wr7o'),
+                port=5432,  # PostgreSQLのデフォルトポート
                 connection_timeout=5000
             )
             logger.debug("Database connection successful")
