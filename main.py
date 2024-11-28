@@ -3,6 +3,7 @@ import mysql.connector
 from datetime import datetime
 import os
 import logging
+import time
 
 # ロギングの設定
 logging.basicConfig(level=logging.DEBUG)
@@ -48,23 +49,27 @@ def init_db():
 # データベース接続設定
 def get_db_connection():
     logger.debug("Attempting database connection...")
-    try:
-        conn = mysql.connector.connect(
-            host=os.getenv('DB_HOST', 'localhost'),
-            user=os.getenv('DB_USER', 'root'),
-            password=os.getenv('DB_PASSWORD', ''),
-            database=os.getenv('DB_NAME', 'recipe_db'),
-            connection_timeout=5000
-        )
-        logger.debug("Database connection successful")
-        return conn
-    except mysql.connector.Error as err:
-        logger.error(f"Database connection error: {str(err)}")
-        if err.errno == mysql.connector.errorcode.ER_BAD_DB_ERROR:
-            logger.info("Database does not exist, attempting to initialize...")
-            init_db()
-            return get_db_connection()
-        raise
+    retries = 3
+    delay = 5  # seconds
+    
+    for attempt in range(retries):
+        try:
+            conn = mysql.connector.connect(
+                host=os.getenv('DB_HOST', 'localhost'),
+                user=os.getenv('DB_USER', 'root'),
+                password=os.getenv('DB_PASSWORD', ''),
+                database=os.getenv('DB_NAME', 'recipe_db'),
+                connection_timeout=5000
+            )
+            logger.debug("Database connection successful")
+            return conn
+        except mysql.connector.Error as err:
+            logger.error(f"Database connection error (attempt {attempt + 1}/{retries}): {str(err)}")
+            if attempt < retries - 1:
+                logger.info(f"Retrying in {delay} seconds...")
+                time.sleep(delay)
+            else:
+                raise
 
 # ベースURLへのアクセス処理
 @app.route('/', methods=['GET'])

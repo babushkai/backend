@@ -6,10 +6,37 @@ services:
     startCommand: gunicorn main:app
     envVars:
       - key: DB_HOST
-        sync: false
+        fromService:
+          type: pserv
+          name: recipe-mysql
+          property: host
       - key: DB_USER
-        sync: false
+        fromService:
+          type: pserv
+          name: recipe-mysql
+          property: user
       - key: DB_PASSWORD
-        sync: false
+        fromService:
+          type: pserv
+          name: recipe-mysql
+          property: password
       - key: DB_NAME
-        sync: false 
+        fromService:
+          type: pserv
+          name: recipe-mysql
+          property: database
+
+  - type: pserv
+    name: recipe-mysql
+    runtime: mysql
+    ipAllowList: []
+    plan: free
+    envVars:
+      - key: MYSQL_DATABASE
+        value: recipe_db
+      - key: MYSQL_USER
+        generateValue: true
+      - key: MYSQL_PASSWORD
+        generateValue: true
+      - key: MYSQL_ROOT_PASSWORD
+        generateValue: true 
